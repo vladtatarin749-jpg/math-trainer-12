@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Тренажёр счёта — 1–11 классы</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 16px;
+      background: #f3f6fb;
+      color: #1e293b;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 560px;
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      align-self: flex-start;
+    }
+
+    /* Экран-обложка */
+    .intro-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 16px;
+      padding: 8px 0 4px;
+    }
+
+    .intro-screen.hidden {
+      display: none;
+    }
+
+    .intro-title {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .gif-box {
+      width: 100%;
+      max-width: 360px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #f1f5f9;
+      border: 2px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 160px;
+      padding: 8px;
+    }
+
+    .gif-box img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      border-radius: 10px;
+    }
+
+    .gif-fallback {
+      font-size: 14px;
+      font-weight: 600;
+      color: #64748b;
+      padding: 16px;
+    }
+
+    .reveal-stage {
+      width: 100%;
+      display: none;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .reveal-stage.visible {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .start-stage {
+      width: 100%;
+      display: none;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .start-stage.visible {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Рабочий экран */
+    .game-screen {
+      display: none;
+      padding-bottom: 48px;
+    }
+
+    .game-screen.active {
+      display: block;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #e2e8f0;
+      flex-wrap: wrap;
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .stats {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .badge {
+      background: #eff6ff;
+      color: #1d4ed8;
+      padding: 6px 12px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .timer-badge {
+      background: #fef3c7;
+      color: #92400e;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .settings-panel {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: left;
+    }
+
+    .settings-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .settings-label {
+      font-size: 14px;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .grade-select {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1.5px solid #cbd5e1;
+      background: #ffffff;
+      color: #0f172a;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .ops-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .op-btn {
+      min-width: 44px;
+      height: 36px;
+      padding: 0 12px;
+      border-radius: 10px;
+      border: 1.5px solid #cbd5e1;
+      background: #ffffff;
+      color: #475569;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .op-btn.active {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: #ffffff;
+    }
+
+    .grade-desc {
+      font-size: 12px;
+      color: #64748b;
+      margin: 0;
+    }
+
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card {
+      border: 2px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      scroll-margin-top: 24px;
+      scroll-margin-bottom: 140px;
+      transition: border-color 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
+    }
+
+    .card.active {
+      border-color: #3b82f6;
+      background: #f8fbff;
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.12);
+    }
+
+    .card.locked {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
+
+    .card.preview {
+      border-style: dashed;
+      border-color: #cbd5e1;
+      background: #fafafa;
+      opacity: 0.78;
+    }
+
+    .card.correct {
+      border-color: #16a34a;
+      background: #f0fdf4;
+    }
+
+    .card.wrong {
+      border-color: #dc2626;
+      background: #fef2f2;
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .problem-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .expression {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 24px;
+      font-weight: 700;
+      flex-wrap: wrap;
+    }
+
+    .slot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 58px;
+      height: 44px;
+      padding: 0 10px;
+      border-radius: 10px;
+      background: #eef2f6;
+      color: #334155;
+      font-size: 22px;
+    }
+
+    .slot.empty {
+      background: #e2e8f0;
+      color: transparent;
+    }
+
+    .answer-input {
+      width: 118px;
+      height: 46px;
+      border: 2px solid #94a3b8;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+      color: #0f172a;
+      background: #ffffff;
+      outline: none;
+    }
+
+    .answer-input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .answer-input:disabled {
+      background: #e2e8f0;
+      color: #334155;
+      border-color: #cbd5e1;
+      cursor: not-allowed;
+    }
+
+    .step-hint {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 8px;
+    }
+
+    .expected-hint {
+      font-size: 14px;
+      font-weight: 700;
+      color: #15803d;
+      margin-top: 8px;
+    }
+
+    .actions {
+      margin-top: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      scroll-margin-bottom: 120px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px 18px;
+      border: none;
+      border-radius: 14px;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.08s ease, opacity 0.2s ease, background-color 0.2s ease;
+    }
+
+    .btn:active:not(:disabled) {
+      transform: scale(0.99);
+    }
+
+    .btn-start {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    .btn-check {
+      background: #16a34a;
+      color: #ffffff;
+    }
+
+    .btn-check:disabled {
+      background: #cbd5e1;
+      color: #64748b;
+      cursor: not-allowed;
+    }
+
+    .btn-restart {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    .result-box {
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 16px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      display: none;
+      scroll-margin-bottom: 120px;
+    }
+
+    .result-box.visible {
+      display: block;
+    }
+
+    .result-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin: 0 0 6px 0;
+      color: #1e3a8a;
+    }
+
+    .result-text {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.45;
+      color: #1e293b;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Стартовый экран-обложка (только при запуске) -->
+    <section class="intro-screen" id="introScreen">
+      <h1 class="intro-title">Математический тренажёр</h1>
+
+      <div class="gif-box" id="gifBox">
+        <img id="coverGif" src="cover.gif" alt="Заставка тренажёра" />
+      </div>
+
+      <div class="reveal-stage" id="introSettingsStage">
+        <div class="settings-panel">
+          <div class="settings-row">
+            <label class="settings-label" for="introGradeSelect">Класс:</label>
+            <select class="grade-select" id="introGradeSelect"></select>
+          </div>
+
+          <div class="settings-row">
+            <span class="settings-label">Действия:</span>
+            <div class="ops-group" id="introOpsGroup">
+              <button type="button" class="op-btn" data-op="+">+</button>
+              <button type="button" class="op-btn" data-op="-">−</button>
+              <button type="button" class="op-btn" data-op="*">×</button>
+              <button type="button" class="op-btn" data-op="/">÷</button>
+            </div>
+          </div>
+
+          <p class="grade-desc" id="introGradeDesc"></p>
+        </div>
+      </div>
+
+      <div class="start-stage" id="startBtnStage">
+        <button type="button" class="btn btn-start" id="startBtn">Начать</button>
+      </div>
+    </section>
+
+    <!-- Экран решения примеров (без выбора класса и действий) -->
+    <section class="game-screen" id="gameScreen">
+      <div class="header">
+        <h1 class="title">Математический тренажёр</h1>
+        <div class="stats">
+          <div class="badge" id="progressBadge">Пример 1 из 12</div>
+          <div class="timer-badge" id="timerBadge">00:00</div>
+        </div>
+      </div>
+
+      <div class="cards" id="cardsContainer"></div>
+
+      <div class="actions" id="actionsContainer"></div>
+
+      <div class="result-box" id="resultBox">
+        <p class="result-title" id="resultTitle"></p>
+        <p class="result-text" id="resultText"></p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      const TOTAL_PROBLEMS = 12;
+      const GIF_DURATION_MS = 3000;
+      const START_BTN_DELAY_MS = 350;
+
+      const GRADE_CONFIGS = {
+        1:  { label: "1 класс",  addSubMax: 20,   mulMaxA: 5,  mulMaxB: 5,  divQuotMax: 5,  defaultOps: ["+", "-"],           desc: "Сложение и вычитание в пределах 20." },
+        2:  { label: "2 класс",  addSubMax: 100,  mulMaxA: 10, mulMaxB: 5,  divQuotMax: 5,  defaultOps: ["+", "-"],           desc: "Сложение и вычитание до 100." },
+        3:  { label: "3 класс",  addSubMax: 100,  mulMaxA: 10, mulMaxB: 10, divQuotMax: 10, defaultOps: ["+", "-", "*", "/"], desc: "Числа до 100, таблица умножения и деление нацело." },
+        4:  { label: "4 класс",  addSubMax: 999,  mulMaxA: 20, mulMaxB: 12, divQuotMax: 12, defaultOps: ["+", "-", "*", "/"], desc: "Числа до 999, умножение и деление нацело." },
+        5:  { label: "5 класс",  addSubMax: 1500, mulMaxA: 30, mulMaxB: 15, divQuotMax: 20, defaultOps: ["+", "-", "*", "/"], desc: "Уверенный счёт до 1500, умножение и деление нацело." },
+        6:  { label: "6 класс",  addSubMax: 2500, mulMaxA: 50, mulMaxB: 20, divQuotMax: 25, defaultOps: ["+", "-", "*", "/"], desc: "Счёт до 2500 и быстрые вычисления с четырьмя действиями." },
+        7:  { label: "7 класс",  addSubMax: 4000, mulMaxA: 80, mulMaxB: 25, divQuotMax: 35, defaultOps: ["+", "-", "*", "/"], desc: "Повышенный темп и крупные числа до 4000." },
+        8:  { label: "8 класс",  addSubMax: 6000, mulMaxA: 100,mulMaxB: 30, divQuotMax: 50, defaultOps: ["+", "-", "*", "/"], desc: "Крупные числа до 6000 и тренировка скорости устного счёта." },
+        9:  { label: "9 класс",  addSubMax: 8000, mulMaxA: 120,mulMaxB: 40, divQuotMax: 60, defaultOps: ["+", "-", "*", "/"], desc: "Числа до 8000, сложные комбинации действий на время." },
+        10: { label: "10 класс", addSubMax: 9999, mulMaxA: 150,mulMaxB: 50, divQuotMax: 80, defaultOps: ["+", "-", "*", "/"], desc: "Высокий уровень: числа до 9999 и быстрый пересчёт." },
+        11: { label: "11 класс", addSubMax: 9999, mulMaxA: 200,mulMaxB: 60, divQuotMax: 100,defaultOps: ["+", "-", "*", "/"], desc: "Максимальная тренировка внимания и скорости счёта." }
+      };
+
+      let selectedGrade = 1;
+      let selectedOps = ["+", "-"];
+      let hasChosenOnIntro = false;
+
+      let problems = [];
+      let answers = [];
+      let lockedSteps = [];
+      let currentStep = 0;
+      let isChecked = false;
+      let isAdvancing = false;
+
+      let timerStarted = false;
+      let timerInterval = null;
+      let elapsedSeconds = 0;
+
+      const introScreen = document.getElementById("introScreen");
+      const gifBox = document.getElementById("gifBox");
+      const coverGif = document.getElementById("coverGif");
+      const introSettingsStage = document.getElementById("introSettingsStage");
+      const startBtnStage = document.getElementById("startBtnStage");
+      const startBtn = document.getElementById("startBtn");
+      const gameScreen = document.getElementById("gameScreen");
+
+      const introGradeSelect = document.getElementById("introGradeSelect");
+      const introOpsGroup = document.getElementById("introOpsGroup");
+      const introGradeDesc = document.getElementById("introGradeDesc");
+
+      const cardsContainer = document.getElementById("cardsContainer");
+      const actionsContainer = document.getElementById("actionsContainer");
+      const progressBadge = document.getElementById("progressBadge");
+      const timerBadge = document.getElementById("timerBadge");
+      const resultBox = document.getElementById("resultBox");
+      const resultTitle = document.getElementById("resultTitle");
+      const resultText = document.getElementById("resultText");
+
+      if (coverGif) {
+        coverGif.addEventListener("error", function () {
+          gifBox.innerHTML = '<div class="gif-fallback">Анимация cover.gif не найдена в www/cover.gif</div>';
+        });
+      }
+
+      function initGradeSelect() {
+        introGradeSelect.innerHTML = "";
+        for (let g = 1; g <= 11; g++) {
+          const option = document.createElement("option");
+          option.value = String(g);
+          option.textContent = GRADE_CONFIGS[g].label;
+          introGradeSelect.appendChild(option);
+        }
+        introGradeSelect.value = String(selectedGrade);
+      }
+
+      function syncIntroSettingsUI() {
+        introGradeSelect.value = String(selectedGrade);
+        const buttons = introOpsGroup.querySelectorAll(".op-btn");
+        buttons.forEach(function (btn) {
+          if (selectedOps.indexOf(btn.getAttribute("data-op")) !== -1) {
+            btn.classList.add("active");
+          } else {
+            btn.classList.remove("active");
+          }
+        });
+        introGradeDesc.textContent = GRADE_CONFIGS[selectedGrade].desc;
+      }
+
+      function showStartButtonAfterChoice() {
+        hasChosenOnIntro = true;
+        setTimeout(function () {
+          if (hasChosenOnIntro) {
+            startBtnStage.classList.add("visible");
+          }
+        }, START_BTN_DELAY_MS);
+      }
+
+      function startIntroSequence() {
+        setTimeout(function () {
+          introSettingsStage.classList.add("visible");
+          showStartButtonAfterChoice();
+        }, GIF_DURATION_MS);
+      }
+
+      function enterGameFromIntro() {
+        introScreen.classList.add("hidden");
+        gameScreen.classList.add("active");
+        resetGame();
+      }
+
+      function opSymbol(op) {
+        if (op === "+") return "+";
+        if (op === "-") return "−";
+        if (op === "*") return "×";
+        if (op === "/") return "÷";
+        return op;
+      }
+
+      function randomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      function generateProblem() {
+        const cfg = GRADE_CONFIGS[selectedGrade];
+        const ops = selectedOps.length > 0 ? selectedOps : ["+"];
+        const op = ops[randomInt(0, ops.length - 1)];
+
+        if (op === "+") {
+          const a = randomInt(1, cfg.addSubMax);
+          const b = randomInt(1, cfg.addSubMax);
+          return { a: a, b: b, op: op, symbol: "+", answer: a + b };
+        }
+
+        if (op === "-") {
+          const a = randomInt(1, cfg.addSubMax);
+          const b = randomInt(1, a);
+          return { a: a, b: b, op: op, symbol: "−", answer: a - b };
+        }
+
+        if (op === "*") {
+          const a = randomInt(2, cfg.mulMaxA);
+          const b = randomInt(2, cfg.mulMaxB);
+          return { a: a, b: b, op: op, symbol: "×", answer: a * b };
+        }
+
+        const divisor = randomInt(2, cfg.mulMaxB);
+        const quotient = randomInt(1, cfg.divQuotMax);
+        const dividend = divisor * quotient;
+        return { a: dividend, b: divisor, op: op, symbol: "÷", answer: quotient };
+      }
+
+      function hasMeaningfulValue(rawValue) {
+        return typeof rawValue === "string" && rawValue.trim().length > 0;
+      }
+
+      function parseNumberValue(rawValue) {
+        if (!hasMeaningfulValue(rawValue)) return null;
+        const trimmed = rawValue.trim();
+        if (!/^\d+$/.test(trimmed)) return NaN;
+        return Number(trimmed);
+      }
+
+      function formatTime(totalSec) {
+        const mins = String(Math.floor(totalSec / 60)).padStart(2, "0");
+        const secs = String(totalSec % 60).padStart(2, "0");
+        return mins + ":" + secs;
+      }
+
+      function startTimerIfNeeded() {
+        if (timerStarted || isChecked) return;
+        timerStarted = true;
+        timerInterval = setInterval(function () {
+          elapsedSeconds += 1;
+          timerBadge.textContent = formatTime(elapsedSeconds);
+        }, 1000);
+      }
+
+      function stopTimer() {
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+      }
+
+      function resetGame() {
+        stopTimer();
+        problems = [];
+        for (let i = 0; i < TOTAL_PROBLEMS; i++) {
+          problems.push(generateProblem());
+        }
+        answers = new Array(TOTAL_PROBLEMS).fill("");
+        lockedSteps = new Array(TOTAL_PROBLEMS).fill(false);
+        currentStep = 0;
+        isChecked = false;
+        isAdvancing = false;
+        timerStarted = false;
+        elapsedSeconds = 0;
+
+        timerBadge.textContent = "00:00";
+        resultBox.classList.remove("visible");
+        render(false);
+        if (gameScreen.classList.contains("active")) {
+          focusCurrentInput(false);
+        }
+      }
+
+      function scrollElementIntoViewSmooth(el) {
+        if (!el) return;
+        try {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        } catch (e) {
+          try {
+            el.scrollIntoView();
+          } catch (err) {}
+        }
+      }
+
+      function scrollStepAndActionsIntoView(stepIndex) {
+        const cardEl = document.getElementById("card-" + stepIndex);
+        if (cardEl) {
+          scrollElementIntoViewSmooth(cardEl);
+        }
+        if (stepIndex === TOTAL_PROBLEMS - 1) {
+          setTimeout(function () {
+            const checkBtn = document.getElementById("checkBtn");
+            if (checkBtn) {
+              scrollElementIntoViewSmooth(checkBtn);
+            }
+          }, 180);
+        }
+      }
+
+      function focusCurrentInput(shouldScroll) {
+        setTimeout(function () {
+          const input = document.getElementById("input-" + currentStep);
+          if (shouldScroll) {
+            scrollStepAndActionsIntoView(currentStep);
+          }
+          if (input && !input.disabled) {
+            try {
+              input.focus({ preventScroll: Boolean(shouldScroll) });
+            } catch (e) {
+              try {
+                input.focus();
+              } catch (err) {}
+            }
+          }
+        }, 50);
+      }
+
+      function handleInputChange(index, value) {
+        if (isChecked || isAdvancing || index !== currentStep || lockedSteps[index]) return;
+
+        answers[index] = value;
+
+        if (hasMeaningfulValue(value)) {
+          startTimerIfNeeded();
+        }
+
+        if (index === TOTAL_PROBLEMS - 1) {
+          updateCheckButtonState();
+        }
+      }
+
+      function commitStepIfReady(index) {
+        if (isChecked || isAdvancing || index !== currentStep || lockedSteps[index]) return false;
+
+        const val = answers[index];
+        if (!hasMeaningfulValue(val)) {
+          if (index === TOTAL_PROBLEMS - 1) {
+            updateCheckButtonState();
+          }
+          return false;
+        }
+
+        startTimerIfNeeded();
+
+        if (index < TOTAL_PROBLEMS - 1) {
+          isAdvancing = true;
+          lockedSteps[index] = true;
+          currentStep = index + 1;
+          render(true);
+          isAdvancing = false;
+          focusCurrentInput(true);
+          return true;
+        } else {
+          updateCheckButtonState();
+          scrollStepAndActionsIntoView(index);
+          return true;
+        }
+      }
+
+      function updateCheckButtonState() {
+        const checkBtn = document.getElementById("checkBtn");
+        if (!checkBtn) return;
+        const lastHasValue = hasMeaningfulValue(answers[TOTAL_PROBLEMS - 1]);
+        checkBtn.disabled = !lastHasValue || isChecked;
+      }
+
+      function checkAnswers() {
+        if (isChecked) return;
+        if (!hasMeaningfulValue(answers[TOTAL_PROBLEMS - 1])) return;
+
+        isChecked = true;
+        lockedSteps = new Array(TOTAL_PROBLEMS).fill(true);
+        stopTimer();
+
+        let correctCount = 0;
+        for (let idx = 0; idx < problems.length; idx++) {
+          const userVal = parseNumberValue(answers[idx]);
+          if (userVal === problems[idx].answer) {
+            correctCount += 1;
+          }
+        }
+
+        render(false);
+
+        resultBox.classList.add("visible");
+        resultTitle.textContent = "Результат: " + correctCount + " из " + TOTAL_PROBLEMS + " (" + GRADE_CONFIGS[selectedGrade].label + ")";
+        resultText.textContent =
+          "Заработано монет: " + correctCount + " из 12 · Время: " + formatTime(elapsedSeconds) + ". " +
+          (correctCount === TOTAL_PROBLEMS
+            ? "Отличная работа! Все примеры решены верно."
+            : "Проверь примеры, отмеченные красным, и попробуй ещё раз.");
+
+        setTimeout(function () {
+          scrollElementIntoViewSmooth(resultBox);
+        }, 60);
+      }
+
+      function render(shouldScrollToCurrent) {
+        progressBadge.textContent = isChecked
+          ? "Проверка завершена"
+          : "Пример " + (currentStep + 1) + " из " + TOTAL_PROBLEMS;
+
+        cardsContainer.innerHTML = "";
+
+        for (let i = 0; i <= currentStep; i++) {
+          const p = problems[i];
+          const card = document.createElement("div");
+          card.id = "card-" + i;
+          card.className = "card";
+
+          let statusText = "";
+          if (isChecked) {
+            const userVal = parseNumberValue(answers[i]);
+            const isRight = userVal === p.answer;
+            card.classList.add(isRight ? "correct" : "wrong");
+            statusText = isRight ? "Верно" : "Ошибка";
+          } else if (i < currentStep || lockedSteps[i]) {
+            card.classList.add("locked");
+            statusText = "Зафиксировано";
+          } else {
+            card.classList.add("active");
+            statusText = "Текущий пример";
+          }
+
+          const isDisabled = isChecked || lockedSteps[i] || i !== currentStep;
+          const hintHtml = (!isDisabled && i < TOTAL_PROBLEMS - 1)
+            ? '<div class="step-hint">Нажми Enter или кликни дальше, чтобы перейти к следующему примеру</div>'
+            : "";
+          const expectedHtml = (isChecked && parseNumberValue(answers[i]) !== p.answer)
+            ? '<div class="expected-hint">Правильный ответ: ' + p.answer + "</div>"
+            : "";
+
+          card.innerHTML =
+            '<div class="card-top"><span>Пример ' + (i + 1) + '</span><span>' + statusText + '</span></div>' +
+            '<div class="problem-row">' +
+              '<div class="expression">' +
+                '<span>' + p.a + '</span>' +
+                '<span>' + p.symbol + '</span>' +
+                '<span>' + p.b + '</span>' +
+                '<span>=</span>' +
+              '</div>' +
+              '<input id="input-' + i + '" class="answer-input" type="text" inputmode="numeric" autocomplete="off" placeholder="?" value="' + escapeHtml(answers[i]) + '" ' + (isDisabled ? "disabled" : "") + ' />' +
+            '</div>' +
+            hintHtml +
+            expectedHtml;
+
+          cardsContainer.appendChild(card);
+
+          const inputEl = document.getElementById("input-" + i);
+          if (inputEl && !isDisabled) {
+            inputEl.addEventListener("input", function (e) {
+              handleInputChange(i, e.target.value);
+            });
+            inputEl.addEventListener("keydown", function (e) {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                answers[i] = e.target.value;
+                if (i < TOTAL_PROBLEMS - 1) {
+                  commitStepIfReady(i);
+                } else if (hasMeaningfulValue(answers[i])) {
+                  checkAnswers();
+                }
+              }
+            });
+            inputEl.addEventListener("blur", function (e) {
+              answers[i] = e.target.value;
+              if (i < TOTAL_PROBLEMS - 1) {
+                commitStepIfReady(i);
+              } else {
+                updateCheckButtonState();
+              }
+            });
+          }
+        }
+
+        if (!isChecked && currentStep < TOTAL_PROBLEMS - 1) {
+          const previewCard = document.createElement("div");
+          previewCard.className = "card preview";
+          const previewSymbol = opSymbol(selectedOps[0] || "+");
+          previewCard.innerHTML =
+            '<div class="card-top"><span>Пример ' + (currentStep + 2) + '</span><span>Появится после ввода ответа</span></div>' +
+            '<div class="problem-row">' +
+              '<div class="expression">' +
+                '<span class="slot empty">000</span>' +
+                '<span class="slot empty">' + previewSymbol + '</span>' +
+                '<span class="slot empty">000</span>' +
+                '<span>=</span>' +
+              '</div>' +
+              '<span class="slot empty">000</span>' +
+            '</div>';
+          cardsContainer.appendChild(previewCard);
+        }
+
+        actionsContainer.innerHTML = "";
+
+        if (currentStep === TOTAL_PROBLEMS - 1 && !isChecked) {
+          const checkBtn = document.createElement("button");
+          checkBtn.id = "checkBtn";
+          checkBtn.type = "button";
+          checkBtn.className = "btn btn-check";
+          checkBtn.textContent = "Проверить ответы";
+          checkBtn.disabled = !hasMeaningfulValue(answers[TOTAL_PROBLEMS - 1]);
+          checkBtn.addEventListener("click", checkAnswers);
+          actionsContainer.appendChild(checkBtn);
+        }
+
+        if (isChecked) {
+          const restartBtn = document.createElement("button");
+          restartBtn.type = "button";
+          restartBtn.className = "btn btn-restart";
+          restartBtn.textContent = "Начать заново";
+          restartBtn.addEventListener("click", resetGame);
+          actionsContainer.appendChild(restartBtn);
+        }
+
+        if (shouldScrollToCurrent) {
+          scrollStepAndActionsIntoView(currentStep);
+        }
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/"/g, "&quot;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      function onGradeChanged(newGrade) {
+        selectedGrade = Number(newGrade);
+        selectedOps = GRADE_CONFIGS[selectedGrade].defaultOps.slice();
+        syncIntroSettingsUI();
+        showStartButtonAfterChoice();
+      }
+
+      function onOpToggled(op) {
+        const idx = selectedOps.indexOf(op);
+        if (idx !== -1) {
+          if (selectedOps.length > 1) {
+            selectedOps = selectedOps.filter(function (item) {
+              return item !== op;
+            });
+          }
+        } else {
+          selectedOps.push(op);
+        }
+        syncIntroSettingsUI();
+        showStartButtonAfterChoice();
+      }
+
+      introGradeSelect.addEventListener("change", function (e) {
+        onGradeChanged(e.target.value);
+      });
+
+      introOpsGroup.addEventListener("click", function (e) {
+        const btn = e.target.closest ? e.target.closest(".op-btn") : null;
+        if (btn) onOpToggled(btn.getAttribute("data-op"));
+      });
+
+      startBtn.addEventListener("click", enterGameFromIntro);
+
+      initGradeSelect();
+      syncIntroSettingsUI();
+      resetGame();
+      startIntroSequence();
+    })();
+  </script>
+</body>
+</html>
