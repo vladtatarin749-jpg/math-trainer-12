@@ -65,7 +65,8 @@
       padding: 8px;
     }
 
-    .gif-box img {
+    .gif-box img,
+    .gif-box canvas {
       display: block;
       max-width: 100%;
       height: auto;
@@ -506,6 +507,7 @@
       let selectedGrade = 1;
       let selectedOps = ["+", "-"];
       let hasChosenOnIntro = false;
+      let gifLoadFailed = false;
 
       let problems = [];
       let answers = [];
@@ -540,8 +542,29 @@
 
       if (coverGif) {
         coverGif.addEventListener("error", function () {
+          gifLoadFailed = true;
           gifBox.innerHTML = '<div class="gif-fallback">Анимация cover.gif не найдена в www/cover.gif</div>';
         });
+      }
+
+      function freezeGifAtCurrentFrame() {
+        if (gifLoadFailed || !coverGif || !coverGif.complete) return;
+        const w = coverGif.naturalWidth || coverGif.width;
+        const h = coverGif.naturalHeight || coverGif.height;
+        if (!w || !h) return;
+
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return;
+          ctx.drawImage(coverGif, 0, 0, w, h);
+          gifBox.innerHTML = "";
+          gifBox.appendChild(canvas);
+        } catch (e) {
+          // Если холст недоступен — оставляем картинку как есть
+        }
       }
 
       function initGradeSelect() {
@@ -579,6 +602,7 @@
 
       function startIntroSequence() {
         setTimeout(function () {
+          freezeGifAtCurrentFrame();
           introSettingsStage.classList.add("visible");
           showStartButtonAfterChoice();
         }, GIF_DURATION_MS);
